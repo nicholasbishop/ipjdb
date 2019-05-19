@@ -128,24 +128,7 @@ impl Collection {
     where
         for<'de> T: Deserialize<'de>,
     {
-        let mut lock = FileLock::shared(&self.root)?;
-        let mut result = Vec::new();
-        for entry in fs::read_dir(&self.root)? {
-            let entry = entry?;
-            let name = entry
-                .file_name()
-                .into_string()
-                .expect("failed to convert file name to string");
-            let id = ObjectId::from_str(&name)?;
-            let path = entry.path();
-            let file = fs::File::open(path)?;
-            let reader = io::BufReader::new(file);
-            if let Ok(val) = serde_json::from_reader(reader) {
-                result.push(ObjectWithId::new(id, val));
-            }
-        }
-        lock.unlock()?;
-        Ok(result)
+        self.find_many(|_| true)
     }
 
     pub fn find_many<T, F>(&self, f: F) -> Result<Vec<ObjectWithId<T>>, DbError>
