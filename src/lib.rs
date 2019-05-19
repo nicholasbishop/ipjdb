@@ -201,15 +201,15 @@ impl Collection {
         Ok(())
     }
 
-    pub fn replace_one<T>(&self, id: &ObjectId, object: &T) -> Result<(), DbError>
+    pub fn replace_one<T>(&self, item: &ObjectWithId<T>) -> Result<(), DbError>
     where
         T: Serialize,
     {
         let mut lock = FileLock::exclusive(&self.root)?;
-        let path = self.object_path(id)?;
+        let path = self.object_path(&item.id)?;
         let file = fs::File::create(path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &object)?;
+        serde_json::to_writer(writer, &item.object)?;
         lock.unlock()?;
         Ok(())
     }
@@ -280,7 +280,7 @@ mod tests {
         let db = Db::open(dir.path()).unwrap();
         let conn = db.collection("abc").unwrap();
         let id = conn.add_one(&123).unwrap();
-        let val: u32 = conn.get_one(&id).unwrap();
-        assert_eq!(val, 123);
+        let val: ObjectWithId<u32> = conn.get_one(&id).unwrap();
+        assert_eq!(val.object, 123);
     }
 }
