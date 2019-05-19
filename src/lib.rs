@@ -3,6 +3,8 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -25,6 +27,18 @@ impl From<serde_json::error::Error> for DbError {
         DbError::JsonError(error)
     }
 }
+
+impl fmt::Display for DbError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            DbError::InvalidObjectId => write!(f, "InvalidObjectId"),
+            DbError::IoError(e) => write!(f, "IoError: {}", e),
+            DbError::JsonError(e) => write!(f, "JsonError: {}", e),
+        }
+    }
+}
+
+impl Error for DbError {}
 
 const OBJECT_ID_SIZE: usize = 16;
 
