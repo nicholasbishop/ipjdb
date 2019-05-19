@@ -2,7 +2,6 @@ use fs2::FileExt;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -62,6 +61,20 @@ impl ObjectId {
     }
 }
 
+pub struct ObjectWithId<T> {
+    pub id: ObjectId,
+    pub object: T,
+}
+
+impl<T> ObjectWithId<T> {
+    pub fn new(id: ObjectId, object: T) -> ObjectWithId<T> {
+        ObjectWithId {
+            id,
+            object,
+        }
+    }
+}
+
 struct FileLock {
     file: fs::File,
     is_locked: bool,
@@ -111,12 +124,12 @@ impl Collection {
         Ok(self.root.join(id.to_str()?))
     }
 
-    pub fn get_all<T>(&self) -> Result<HashMap<ObjectId, T>, DbError>
+    pub fn get_all<T>(&self) -> Result<Vec<ObjectWithId<T>>, DbError>
     where
         for<'de> T: Deserialize<'de>,
     {
         let mut lock = FileLock::shared(&self.root)?;
-        let mut result = HashMap::new();
+        let mut result = Vec::new();
         for entry in fs::read_dir(&self.root)? {
             let entry = entry?;
             let name = entry
@@ -128,14 +141,14 @@ impl Collection {
             let file = fs::File::open(path)?;
             let reader = io::BufReader::new(file);
             if let Ok(val) = serde_json::from_reader(reader) {
-                result.insert(id, val);
+                result.push(ObjectWithId::new(id, val));
             }
         }
         lock.unlock()?;
         Ok(result)
     }
 
-    pub fn get_one<T>(&self, id: &ObjectId) -> Result<T, DbError>
+    pub fn get_one<T>(&self, id: &ObjectId) -> Result<ObjectWithId<T>, DbError>
     where
         for<'de> T: Deserialize<'de>,
     {
@@ -145,7 +158,7 @@ impl Collection {
         let reader = io::BufReader::new(file);
         let val = serde_json::from_reader(reader)?;
         lock.unlock()?;
-        Ok(val)
+        Ok(ObjectWithId::new(id.clone(), val))
     }
 
     // Precondition: an exclusive lock must be taken before calling
