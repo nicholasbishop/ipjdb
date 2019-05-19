@@ -127,8 +127,9 @@ impl Collection {
             let path = entry.path();
             let file = fs::File::open(path)?;
             let reader = io::BufReader::new(file);
-            let val = serde_json::from_reader(reader)?;
-            result.insert(id, val);
+            if let Ok(val) = serde_json::from_reader(reader) {
+                result.insert(id, val);
+            }
         }
         lock.unlock()?;
         Ok(result)
