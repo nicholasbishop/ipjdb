@@ -148,6 +148,34 @@ impl Collection {
         Ok(result)
     }
 
+    pub fn find_many<T, F>(&self, f: F) -> Result<Vec<ObjectWithId<T>>, DbError>
+    where
+        for<'de> T: Deserialize<'de>,
+        F: Fn(&ObjectWithId<T>) -> bool,
+    {
+        let mut lock = FileLock::shared(&self.root)?;
+        let mut result = Vec::new();
+        for entry in fs::read_dir(&self.root)? {
+            let entry = entry?;
+            let name = entry
+                .file_name()
+                .into_string()
+                .expect("failed to convert file name to string");
+            let id = ObjectId::from_str(&name)?;
+            let path = entry.path();
+            let file = fs::File::open(path)?;
+            let reader = io::BufReader::new(file);
+            if let Ok(val) = serde_json::from_reader(reader) {
+                let item = ObjectWithId::new(id, val);
+                if f(&item) {
+                    result.push(item);
+                }
+            }
+        }
+        lock.unlock()?;
+        Ok(result)
+    }
+
     pub fn get_one<T>(&self, id: &ObjectId) -> Result<ObjectWithId<T>, DbError>
     where
         for<'de> T: Deserialize<'de>,
