@@ -5,8 +5,6 @@ mod lock;
 use error::DbError;
 pub use id::{Id, ID_SIZE};
 use lock::FileLock;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -96,13 +94,7 @@ impl Collection {
     // this function
     fn gen_id(&self) -> Id {
         loop {
-            let chars = b"0123456789abcdef";
-            let mut rng = thread_rng();
-            let mut arr: [u8; ID_SIZE] = Default::default();
-            for index in 0..arr.len() {
-                arr[index] = *chars.choose(&mut rng).unwrap();
-            }
-            let id = Id(arr);
+            let id = Id::random();
             // Check if the ID is already in use
             if !self.item_path(&id).unwrap().exists() {
                 return id;

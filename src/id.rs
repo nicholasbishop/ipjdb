@@ -1,4 +1,6 @@
 use crate::error::DbError;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use serde::{de, ser};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
@@ -7,9 +9,21 @@ pub const ID_SIZE: usize = 16;
 
 /// Unique item ID
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Id(pub [u8; ID_SIZE]);
+pub struct Id([u8; ID_SIZE]);
 
 impl Id {
+    /// Generate a random ID
+    pub fn random() -> Id {
+        let chars = b"0123456789abcdef";
+        let mut rng = thread_rng();
+        let mut arr: [u8; ID_SIZE] = Default::default();
+        for index in 0..arr.len() {
+            arr[index] = *chars.choose(&mut rng).unwrap();
+        }
+        Id(arr)
+    }
+
+    /// Create an ID from a 16-character hexadecimal string
     pub fn from_str(s: &str) -> Result<Id, DbError> {
         let b = s.as_bytes();
         if b.len() == ID_SIZE {
@@ -21,6 +35,7 @@ impl Id {
         }
     }
 
+    /// Convert an ID to a 16-character hexadecimal string
     pub fn to_str(&self) -> Result<&str, DbError> {
         std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidId)
     }
