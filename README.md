@@ -4,7 +4,7 @@ This is a very simple database for storing JSON data. Each database
 consists of a number of collections. Collections contain items, which
 are JSON files.
 
-The database read and modified through a library; there is no separate
+The database is read and modified through a library; there is no separate
 server process.
 
 ## Storage
