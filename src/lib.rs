@@ -158,6 +158,24 @@ impl Collection {
         Ok(())
     }
 
+    pub fn update_by_id<T, U>(&self, id: &Id, u: U) -> Result<(), DbError>
+    where
+        for<'de> T: Deserialize<'de> + Serialize,
+        U: Fn(&Id, &T) -> T,
+    {
+        let mut lock = FileLock::exclusive(&self.root)?;
+        let path = self.item_path(id)?;
+        let file = fs::File::open(&path)?;
+        let reader = io::BufReader::new(file);
+        let val = serde_json::from_reader(reader)?;
+        let val = u(&id, &val);
+        let file = fs::File::create(&path)?;
+        let writer = io::BufWriter::new(file);
+        serde_json::to_writer(writer, &val)?;
+        lock.unlock()?;
+        Ok(())
+    }
+
     pub fn update_many<T, F, U>(&self, f: F, u: U) -> Result<(), DbError>
     where
         for<'de> T: Deserialize<'de> + Serialize,
