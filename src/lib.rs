@@ -120,7 +120,7 @@ impl Collection {
         }
     }
 
-    pub fn add_one<T>(&self, data: &T) -> Result<Id, DbError>
+    pub fn insert_one<T>(&self, data: &T) -> Result<Id, DbError>
     where
         T: Serialize,
     {
@@ -239,7 +239,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let db = Db::open(dir.path()).unwrap();
         let conn = db.collection("abc").unwrap();
-        let id = conn.add_one(&123).unwrap();
+        let id = conn.insert_one(&123).unwrap();
         let val: Item<u32> = conn.get_one(&id).unwrap();
         assert_eq!(val.data, 123);
     }
