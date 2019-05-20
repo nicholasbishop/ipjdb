@@ -1,7 +1,9 @@
 pub mod error;
+pub mod id;
 mod lock;
 
 use error::DbError;
+pub use id::{Id, ID_SIZE};
 use lock::FileLock;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
@@ -9,29 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-
-const ID_SIZE: usize = 16;
-
-/// Unique item ID
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Id([u8; ID_SIZE]);
-
-impl Id {
-    fn from_str(s: &str) -> Result<Id, DbError> {
-        let b = s.as_bytes();
-        if b.len() == ID_SIZE {
-            let mut arr: [u8; ID_SIZE] = Default::default();
-            arr.copy_from_slice(b);
-            Ok(Id(arr))
-        } else {
-            Err(DbError::InvalidId)
-        }
-    }
-
-    fn to_str(&self) -> Result<&str, DbError> {
-        std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidId)
-    }
-}
 
 /// JSON data with its unique ID
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -286,7 +265,8 @@ mod tests {
         let id = conn.insert_one(&123).unwrap();
         conn.update_by_id(&id, |item| {
             item.data = 456;
-        }).unwrap();
+        })
+        .unwrap();
         let val: Item<u32> = conn.get_one(&id).unwrap();
         assert_eq!(val.data, 456);
     }
