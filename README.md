@@ -4,8 +4,8 @@ This is a very simple database for storing JSON data. Each database
 consists of a number of collections. Collections contain items, which
 are JSON files.
 
-The database is read and modified through a library; there is no separate
-server process.
+The database is read and modified through a library; there is no
+separate server process.
 
 ## Storage
 
@@ -31,5 +31,9 @@ an exclusive lock and read operations take a shared lock.
 
 ## Safety
 
-I make no promises as to the production-readiness of this
-library. Patches welcome though :)
+I make no promises as to the production-readiness of this library. It
+needs a lot more tests, if nothing else. Patches welcome :)
+
+## License
+
+Apache-2.0
