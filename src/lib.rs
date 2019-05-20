@@ -40,10 +40,7 @@ pub struct Item<T> {
 
 impl<T> Item<T> {
     pub fn new(id: Id, data: T) -> Item<T> {
-        Item {
-            id,
-            data,
-        }
+        Item { id, data }
     }
 }
 
