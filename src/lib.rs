@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 
 const ID_SIZE: usize = 16;
 
+/// Unique item ID
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Id([u8; ID_SIZE]);
 
@@ -32,6 +33,7 @@ impl Id {
     }
 }
 
+/// JSON data with its unique ID
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Item<T> {
     pub id: Id,
@@ -44,6 +46,7 @@ impl<T> Item<T> {
     }
 }
 
+/// Group of items in the database
 #[derive(Debug)]
 pub struct Collection {
     root: PathBuf,
@@ -54,6 +57,7 @@ impl Collection {
         Ok(self.root.join(id.to_str()?))
     }
 
+    /// Get all the items in the collection
     pub fn get_all<T>(&self) -> Result<Vec<Item<T>>, DbError>
     where
         for<'de> T: Deserialize<'de>,
@@ -61,6 +65,11 @@ impl Collection {
         self.find_many(|_| true)
     }
 
+    /// Get a subset of the items in the collection
+    ///
+    /// Items are filtered by the function `f`, which is passed an
+    /// `Item` and should return `true` to include that `Item` in the
+    /// results, or `false` to exclude it from the results.
     pub fn find_many<T, F>(&self, f: F) -> Result<Vec<Item<T>>, DbError>
     where
         for<'de> T: Deserialize<'de>,
@@ -89,6 +98,7 @@ impl Collection {
         Ok(result)
     }
 
+    /// Get one item by its ID
     pub fn get_one<T>(&self, id: &Id) -> Result<Item<T>, DbError>
     where
         for<'de> T: Deserialize<'de>,
@@ -120,6 +130,9 @@ impl Collection {
         }
     }
 
+    /// Insert one item into the collection
+    ///
+    /// A unique ID will be generated for the item and returned.
     pub fn insert_one<T>(&self, data: &T) -> Result<Id, DbError>
     where
         T: Serialize,
@@ -134,6 +147,7 @@ impl Collection {
         Ok(id)
     }
 
+    /// Delete one item from the collection
     pub fn delete_one(&self, id: &Id) -> Result<(), DbError> {
         let mut lock = FileLock::exclusive(&self.root)?;
         let path = self.item_path(id)?;
@@ -142,6 +156,7 @@ impl Collection {
         Ok(())
     }
 
+    /// Overwrite one item in the collection
     pub fn replace_one<T>(&self, item: &Item<T>) -> Result<(), DbError>
     where
         T: Serialize,
@@ -155,6 +170,12 @@ impl Collection {
         Ok(())
     }
 
+    /// Find an item by its ID and update it
+    ///
+    /// If the item is found, the function `u` will be called with
+    /// that item. The function can modify the data as needed, and the
+    /// new item will be written to the collection. Note that the ID
+    /// cannot be modified.
     pub fn update_by_id<T, U>(&self, id: &Id, u: U) -> Result<(), DbError>
     where
         for<'de> T: Deserialize<'de> + Serialize,
@@ -174,6 +195,15 @@ impl Collection {
         Ok(())
     }
 
+    /// Update a subset of the items in the collection
+    ///
+    /// For each item in the collection the function `f` is called
+    /// with that item. The function should return `true` to update
+    /// the item or `false` to leave it unmodified. For each item
+    /// where `f` returned `true`, the function `u` is called to
+    /// update the item. The function can modify the data as needed,
+    /// and the new item will be written to the collection. Note that
+    /// the ID cannot be modified.
     pub fn update_many<T, F, U>(&self, f: F, u: U) -> Result<(), DbError>
     where
         for<'de> T: Deserialize<'de> + Serialize,
@@ -205,12 +235,14 @@ impl Collection {
     }
 }
 
+/// Database handle
 #[derive(Debug)]
 pub struct Db {
     root: PathBuf,
 }
 
 impl Db {
+    /// Open or create a database
     pub fn open(root: &Path) -> Result<Db, DbError> {
         if !root.exists() {
             fs::create_dir_all(root)?;
@@ -220,6 +252,7 @@ impl Db {
         })
     }
 
+    /// Open or create a collection in the database
     pub fn collection(&self, name: &str) -> Result<Collection, DbError> {
         let path = self.root.join(name);
         if !path.exists() {
