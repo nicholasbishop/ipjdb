@@ -13,9 +13,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 /// JSON data with its unique ID
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Item<T> {
     pub id: Id,
+    #[serde(flatten)]
     pub data: T,
 }
 
