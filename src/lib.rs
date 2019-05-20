@@ -1,43 +1,14 @@
-use fs2::FileExt;
+pub mod error;
+mod lock;
+
+use error::DbError;
+use lock::FileLock;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-use std::fmt;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-
-#[derive(Debug)]
-pub enum DbError {
-    InvalidId,
-    IoError(io::Error),
-    JsonError(serde_json::error::Error),
-}
-
-impl From<io::Error> for DbError {
-    fn from(error: io::Error) -> Self {
-        DbError::IoError(error)
-    }
-}
-
-impl From<serde_json::error::Error> for DbError {
-    fn from(error: serde_json::error::Error) -> Self {
-        DbError::JsonError(error)
-    }
-}
-
-impl fmt::Display for DbError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            DbError::InvalidId => write!(f, "InvalidId"),
-            DbError::IoError(e) => write!(f, "IoError: {}", e),
-            DbError::JsonError(e) => write!(f, "JsonError: {}", e),
-        }
-    }
-}
-
-impl Error for DbError {}
 
 const ID_SIZE: usize = 16;
 
@@ -72,45 +43,6 @@ impl<T> Item<T> {
         Item {
             id,
             data,
-        }
-    }
-}
-
-struct FileLock {
-    file: fs::File,
-    is_locked: bool,
-}
-
-impl FileLock {
-    fn exclusive(path: &Path) -> Result<FileLock, DbError> {
-        let file = fs::File::open(path)?;
-        file.lock_exclusive()?;
-        Ok(FileLock {
-            file,
-            is_locked: true,
-        })
-    }
-
-    fn shared(path: &Path) -> Result<FileLock, DbError> {
-        let file = fs::File::open(path)?;
-        file.lock_shared()?;
-        Ok(FileLock {
-            file,
-            is_locked: true,
-        })
-    }
-
-    fn unlock(&mut self) -> Result<(), DbError> {
-        self.file.unlock()?;
-        self.is_locked = false;
-        Ok(())
-    }
-}
-
-impl Drop for FileLock {
-    fn drop(&mut self) {
-        if self.is_locked {
-            self.unlock().expect("failed to unlock file");
         }
     }
 }
