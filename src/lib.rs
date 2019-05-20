@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub enum DbError {
-    InvalidObjectId,
+    InvalidId,
     IoError(io::Error),
     JsonError(serde_json::error::Error),
 }
@@ -30,7 +30,7 @@ impl From<serde_json::error::Error> for DbError {
 impl fmt::Display for DbError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-            DbError::InvalidObjectId => write!(f, "InvalidObjectId"),
+            DbError::InvalidId => write!(f, "InvalidId"),
             DbError::IoError(e) => write!(f, "IoError: {}", e),
             DbError::JsonError(e) => write!(f, "JsonError: {}", e),
         }
@@ -39,38 +39,38 @@ impl fmt::Display for DbError {
 
 impl Error for DbError {}
 
-const OBJECT_ID_SIZE: usize = 16;
+const ID_SIZE: usize = 16;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct ObjectId([u8; OBJECT_ID_SIZE]);
+pub struct Id([u8; ID_SIZE]);
 
-impl ObjectId {
-    fn from_str(s: &str) -> Result<ObjectId, DbError> {
+impl Id {
+    fn from_str(s: &str) -> Result<Id, DbError> {
         let b = s.as_bytes();
-        if b.len() == OBJECT_ID_SIZE {
-            let mut arr: [u8; OBJECT_ID_SIZE] = Default::default();
+        if b.len() == ID_SIZE {
+            let mut arr: [u8; ID_SIZE] = Default::default();
             arr.copy_from_slice(b);
-            Ok(ObjectId(arr))
+            Ok(Id(arr))
         } else {
-            Err(DbError::InvalidObjectId)
+            Err(DbError::InvalidId)
         }
     }
 
     fn to_str(&self) -> Result<&str, DbError> {
-        std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidObjectId)
+        std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidId)
     }
 }
 
-pub struct ObjectWithId<T> {
-    pub id: ObjectId,
-    pub object: T,
+pub struct Item<T> {
+    pub id: Id,
+    pub data: T,
 }
 
-impl<T> ObjectWithId<T> {
-    pub fn new(id: ObjectId, object: T) -> ObjectWithId<T> {
-        ObjectWithId {
+impl<T> Item<T> {
+    pub fn new(id: Id, data: T) -> Item<T> {
+        Item {
             id,
-            object,
+            data,
         }
     }
 }
@@ -120,21 +120,21 @@ pub struct Collection {
 }
 
 impl Collection {
-    fn object_path(&self, id: &ObjectId) -> Result<PathBuf, DbError> {
+    fn item_path(&self, id: &Id) -> Result<PathBuf, DbError> {
         Ok(self.root.join(id.to_str()?))
     }
 
-    pub fn get_all<T>(&self) -> Result<Vec<ObjectWithId<T>>, DbError>
+    pub fn get_all<T>(&self) -> Result<Vec<Item<T>>, DbError>
     where
         for<'de> T: Deserialize<'de>,
     {
         self.find_many(|_| true)
     }
 
-    pub fn find_many<T, F>(&self, f: F) -> Result<Vec<ObjectWithId<T>>, DbError>
+    pub fn find_many<T, F>(&self, f: F) -> Result<Vec<Item<T>>, DbError>
     where
         for<'de> T: Deserialize<'de>,
-        F: Fn(&ObjectWithId<T>) -> bool,
+        F: Fn(&Item<T>) -> bool,
     {
         let mut lock = FileLock::shared(&self.root)?;
         let mut result = Vec::new();
@@ -144,12 +144,12 @@ impl Collection {
                 .file_name()
                 .into_string()
                 .expect("failed to convert file name to string");
-            let id = ObjectId::from_str(&name)?;
+            let id = Id::from_str(&name)?;
             let path = entry.path();
             let file = fs::File::open(path)?;
             let reader = io::BufReader::new(file);
             if let Ok(val) = serde_json::from_reader(reader) {
-                let item = ObjectWithId::new(id, val);
+                let item = Item::new(id, val);
                 if f(&item) {
                     result.push(item);
                 }
@@ -159,68 +159,68 @@ impl Collection {
         Ok(result)
     }
 
-    pub fn get_one<T>(&self, id: &ObjectId) -> Result<ObjectWithId<T>, DbError>
+    pub fn get_one<T>(&self, id: &Id) -> Result<Item<T>, DbError>
     where
         for<'de> T: Deserialize<'de>,
     {
         let mut lock = FileLock::shared(&self.root)?;
-        let path = self.object_path(id)?;
+        let path = self.item_path(id)?;
         let file = fs::File::open(path)?;
         let reader = io::BufReader::new(file);
         let val = serde_json::from_reader(reader)?;
         lock.unlock()?;
-        Ok(ObjectWithId::new(id.clone(), val))
+        Ok(Item::new(id.clone(), val))
     }
 
     // Precondition: an exclusive lock must be taken before calling
     // this function
-    fn gen_object_id(&self) -> ObjectId {
+    fn gen_id(&self) -> Id {
         loop {
             let chars = b"0123456789abcdef";
             let mut rng = thread_rng();
-            let mut arr: [u8; OBJECT_ID_SIZE] = Default::default();
+            let mut arr: [u8; ID_SIZE] = Default::default();
             for index in 0..arr.len() {
                 arr[index] = *chars.choose(&mut rng).unwrap();
             }
-            let id = ObjectId(arr);
+            let id = Id(arr);
             // Check if the ID is already in use
-            if !self.object_path(&id).unwrap().exists() {
+            if !self.item_path(&id).unwrap().exists() {
                 return id;
             }
         }
     }
 
-    pub fn add_one<T>(&self, object: &T) -> Result<ObjectId, DbError>
+    pub fn add_one<T>(&self, data: &T) -> Result<Id, DbError>
     where
         T: Serialize,
     {
         let mut lock = FileLock::exclusive(&self.root)?;
-        let id = self.gen_object_id();
-        let path = self.object_path(&id)?;
+        let id = self.gen_id();
+        let path = self.item_path(&id)?;
         let file = fs::File::create(path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &object)?;
+        serde_json::to_writer(writer, &data)?;
         lock.unlock()?;
         Ok(id)
     }
 
-    pub fn delete_one(&self, id: &ObjectId) -> Result<(), DbError> {
+    pub fn delete_one(&self, id: &Id) -> Result<(), DbError> {
         let mut lock = FileLock::exclusive(&self.root)?;
-        let path = self.object_path(id)?;
+        let path = self.item_path(id)?;
         fs::remove_file(path)?;
         lock.unlock()?;
         Ok(())
     }
 
-    pub fn replace_one<T>(&self, item: &ObjectWithId<T>) -> Result<(), DbError>
+    pub fn replace_one<T>(&self, item: &Item<T>) -> Result<(), DbError>
     where
         T: Serialize,
     {
         let mut lock = FileLock::exclusive(&self.root)?;
-        let path = self.object_path(&item.id)?;
+        let path = self.item_path(&item.id)?;
         let file = fs::File::create(path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &item.object)?;
+        serde_json::to_writer(writer, &item.data)?;
         lock.unlock()?;
         Ok(())
     }
@@ -228,8 +228,8 @@ impl Collection {
     pub fn update_many<T, F, U>(&self, f: F, u: U) -> Result<(), DbError>
     where
         for<'de> T: Deserialize<'de> + Serialize,
-        F: Fn(&ObjectId, &T) -> bool,
-        U: Fn(&ObjectId, &T) -> T,
+        F: Fn(&Id, &T) -> bool,
+        U: Fn(&Id, &T) -> T,
     {
         let mut lock = FileLock::exclusive(&self.root)?;
         for entry in fs::read_dir(&self.root)? {
@@ -238,7 +238,7 @@ impl Collection {
                 .file_name()
                 .into_string()
                 .expect("failed to convert file name to string");
-            let id = ObjectId::from_str(&name)?;
+            let id = Id::from_str(&name)?;
             let path = entry.path();
             let file = fs::File::open(&path)?;
             let reader = io::BufReader::new(file);
@@ -291,7 +291,7 @@ mod tests {
         let db = Db::open(dir.path()).unwrap();
         let conn = db.collection("abc").unwrap();
         let id = conn.add_one(&123).unwrap();
-        let val: ObjectWithId<u32> = conn.get_one(&id).unwrap();
-        assert_eq!(val.object, 123);
+        let val: Item<u32> = conn.get_one(&id).unwrap();
+        assert_eq!(val.data, 123);
     }
 }
