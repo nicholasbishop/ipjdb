@@ -61,6 +61,7 @@ impl Id {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Item<T> {
     pub id: Id,
     pub data: T,
