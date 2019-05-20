@@ -158,17 +158,18 @@ impl Collection {
     pub fn update_by_id<T, U>(&self, id: &Id, u: U) -> Result<(), DbError>
     where
         for<'de> T: Deserialize<'de> + Serialize,
-        U: Fn(&Item<T>) -> T,
+        U: Fn(&mut Item<T>),
     {
         let mut lock = FileLock::exclusive(&self.root)?;
         let path = self.item_path(id)?;
         let file = fs::File::open(&path)?;
         let reader = io::BufReader::new(file);
         let val = serde_json::from_reader(reader)?;
-        let val = u(&Item::new(id.clone(), val));
+        let mut item = Item::new(id.clone(), val);
+        u(&mut item);
         let file = fs::File::create(&path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &val)?;
+        serde_json::to_writer(writer, &item.data)?;
         lock.unlock()?;
         Ok(())
     }
@@ -177,7 +178,7 @@ impl Collection {
     where
         for<'de> T: Deserialize<'de> + Serialize,
         F: Fn(&Item<T>) -> bool,
-        U: Fn(&Item<T>) -> T,
+        U: Fn(&mut Item<T>),
     {
         let mut lock = FileLock::exclusive(&self.root)?;
         for entry in fs::read_dir(&self.root)? {
@@ -191,12 +192,12 @@ impl Collection {
             let file = fs::File::open(&path)?;
             let reader = io::BufReader::new(file);
             let val = serde_json::from_reader(reader)?;
-            let item = Item::new(id.clone(), val);
+            let mut item = Item::new(id.clone(), val);
             if f(&item) {
-                let val = u(&item);
+                u(&mut item);
                 let file = fs::File::create(&path)?;
                 let writer = io::BufWriter::new(file);
-                serde_json::to_writer(writer, &val)?;
+                serde_json::to_writer(writer, &item.data)?;
             }
         }
         lock.unlock()?;
@@ -242,5 +243,18 @@ mod tests {
         let id = conn.insert_one(&123).unwrap();
         let val: Item<u32> = conn.get_one(&id).unwrap();
         assert_eq!(val.data, 123);
+    }
+
+    #[test]
+    fn test_update_by_id() {
+        let dir = tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        let conn = db.collection("abc").unwrap();
+        let id = conn.insert_one(&123).unwrap();
+        conn.update_by_id(&id, |item| {
+            item.data = 456;
+        }).unwrap();
+        let val: Item<u32> = conn.get_one(&id).unwrap();
+        assert_eq!(val.data, 456);
     }
 }
