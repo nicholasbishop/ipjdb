@@ -41,6 +41,16 @@ impl Id {
     }
 }
 
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        if let Ok(s) = self.to_str() {
+            f.write_str(s)
+        } else {
+            Err(fmt::Error)
+        }
+    }
+}
+
 impl Serialize for Id {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
