@@ -114,7 +114,7 @@ impl Collection {
         let path = self.item_path(&id)?;
         let file = fs::File::create(path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &data)?;
+        serde_json::to_writer_pretty(writer, &data)?;
         lock.unlock()?;
         Ok(id)
     }
@@ -137,7 +137,7 @@ impl Collection {
         let path = self.item_path(&item.id)?;
         let file = fs::File::create(path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &item.data)?;
+        serde_json::to_writer_pretty(writer, &item.data)?;
         lock.unlock()?;
         Ok(())
     }
@@ -162,7 +162,7 @@ impl Collection {
         u(&mut item);
         let file = fs::File::create(&path)?;
         let writer = io::BufWriter::new(file);
-        serde_json::to_writer(writer, &item.data)?;
+        serde_json::to_writer_pretty(writer, &item.data)?;
         lock.unlock()?;
         Ok(())
     }
@@ -199,7 +199,7 @@ impl Collection {
                 u(&mut item);
                 let file = fs::File::create(&path)?;
                 let writer = io::BufWriter::new(file);
-                serde_json::to_writer(writer, &item.data)?;
+                serde_json::to_writer_pretty(writer, &item.data)?;
             }
         }
         lock.unlock()?;
