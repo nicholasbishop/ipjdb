@@ -1,5 +1,8 @@
 # ipjdb (in-process JSON database)
 
+[![Build Status](https://travis-ci.org/nicholasbishop/ipjdb.svg?branch=master)](https://travis-ci.org/nicholasbishop/ipjdb)
+[![Documentation](https://docs.rs/ipjdb/badge.svg)](https://docs.rs/ipjdb)
+
 This is a very simple database for storing JSON data. Each database
 consists of a number of collections. Collections contain items, which
 are JSON files.
