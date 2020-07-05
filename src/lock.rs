@@ -1,4 +1,4 @@
-use crate::error::DbError;
+use crate::error::Error;
 use fs2::FileExt;
 use std::fs;
 use std::path::Path;
@@ -9,7 +9,7 @@ pub struct FileLock {
 }
 
 impl FileLock {
-    pub fn exclusive(path: &Path) -> Result<FileLock, DbError> {
+    pub fn exclusive(path: &Path) -> Result<FileLock, Error> {
         let file = fs::File::open(path)?;
         file.lock_exclusive()?;
         Ok(FileLock {
@@ -18,7 +18,7 @@ impl FileLock {
         })
     }
 
-    pub fn shared(path: &Path) -> Result<FileLock, DbError> {
+    pub fn shared(path: &Path) -> Result<FileLock, Error> {
         let file = fs::File::open(path)?;
         file.lock_shared()?;
         Ok(FileLock {
@@ -27,7 +27,7 @@ impl FileLock {
         })
     }
 
-    pub fn unlock(&mut self) -> Result<(), DbError> {
+    pub fn unlock(&mut self) -> Result<(), Error> {
         self.file.unlock()?;
         self.is_locked = false;
         Ok(())

@@ -1,4 +1,4 @@
-use crate::error::DbError;
+use crate::error::Error;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use serde::{de, ser};
@@ -24,13 +24,13 @@ impl Id {
     }
 
     /// Convert an ID to a 16-character hexadecimal string
-    pub fn to_str(&self) -> Result<&str, DbError> {
-        std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidId)
+    pub fn to_str(&self) -> Result<&str, Error> {
+        std::str::from_utf8(&self.0).map_err(|_| Error::InvalidId)
     }
 }
 
 impl std::str::FromStr for Id {
-    type Err = DbError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let b = s.as_bytes();
@@ -39,7 +39,7 @@ impl std::str::FromStr for Id {
             arr.copy_from_slice(b);
             Ok(Id(arr))
         } else {
-            Err(DbError::InvalidId)
+            Err(Error::InvalidId)
         }
     }
 }

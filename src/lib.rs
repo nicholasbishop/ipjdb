@@ -2,7 +2,7 @@ mod error;
 mod id;
 mod lock;
 
-pub use error::DbError;
+pub use error::Error;
 pub use id::Id;
 use lock::FileLock;
 use serde::{Deserialize, Serialize};
@@ -31,12 +31,12 @@ pub struct Collection {
 }
 
 impl Collection {
-    fn item_path(&self, id: &Id) -> Result<PathBuf, DbError> {
+    fn item_path(&self, id: &Id) -> Result<PathBuf, Error> {
         Ok(self.root.join(id.to_str()?))
     }
 
     /// Get all the items in the collection
-    pub fn get_all<T>(&self) -> Result<Vec<Item<T>>, DbError>
+    pub fn get_all<T>(&self) -> Result<Vec<Item<T>>, Error>
     where
         for<'de> T: Deserialize<'de>,
     {
@@ -48,7 +48,7 @@ impl Collection {
     /// Items are filtered by the function `f`, which is passed an
     /// `Item` and should return `true` to include that `Item` in the
     /// results, or `false` to exclude it from the results.
-    pub fn find_many<T, F>(&self, f: F) -> Result<Vec<Item<T>>, DbError>
+    pub fn find_many<T, F>(&self, f: F) -> Result<Vec<Item<T>>, Error>
     where
         for<'de> T: Deserialize<'de>,
         F: Fn(&Item<T>) -> bool,
@@ -77,7 +77,7 @@ impl Collection {
     }
 
     /// Get one item by its ID
-    pub fn get_one<T>(&self, id: &Id) -> Result<Item<T>, DbError>
+    pub fn get_one<T>(&self, id: &Id) -> Result<Item<T>, Error>
     where
         for<'de> T: Deserialize<'de>,
     {
@@ -105,7 +105,7 @@ impl Collection {
     /// Insert one item into the collection
     ///
     /// A unique ID will be generated for the item and returned.
-    pub fn insert_one<T>(&self, data: &T) -> Result<Id, DbError>
+    pub fn insert_one<T>(&self, data: &T) -> Result<Id, Error>
     where
         T: Serialize,
     {
@@ -120,7 +120,7 @@ impl Collection {
     }
 
     /// Delete one item from the collection
-    pub fn delete_one(&self, id: &Id) -> Result<(), DbError> {
+    pub fn delete_one(&self, id: &Id) -> Result<(), Error> {
         let mut lock = FileLock::exclusive(&self.root)?;
         let path = self.item_path(id)?;
         fs::remove_file(path)?;
@@ -129,7 +129,7 @@ impl Collection {
     }
 
     /// Overwrite one item in the collection
-    pub fn replace_one<T>(&self, item: &Item<T>) -> Result<(), DbError>
+    pub fn replace_one<T>(&self, item: &Item<T>) -> Result<(), Error>
     where
         T: Serialize,
     {
@@ -148,7 +148,7 @@ impl Collection {
     /// that item. The function can modify the data as needed, and the
     /// new item will be written to the collection. Note that the ID
     /// cannot be modified.
-    pub fn update_by_id<T, U>(&self, id: &Id, u: U) -> Result<(), DbError>
+    pub fn update_by_id<T, U>(&self, id: &Id, u: U) -> Result<(), Error>
     where
         for<'de> T: Deserialize<'de> + Serialize,
         U: Fn(&mut Item<T>),
@@ -176,7 +176,7 @@ impl Collection {
     /// update the item. The function can modify the data as needed,
     /// and the new item will be written to the collection. Note that
     /// the ID cannot be modified.
-    pub fn update_many<T, F, U>(&self, f: F, u: U) -> Result<(), DbError>
+    pub fn update_many<T, F, U>(&self, f: F, u: U) -> Result<(), Error>
     where
         for<'de> T: Deserialize<'de> + Serialize,
         F: Fn(&Item<T>) -> bool,
@@ -215,7 +215,7 @@ pub struct Db {
 
 impl Db {
     /// Open or create a database
-    pub fn open(root: &Path) -> Result<Db, DbError> {
+    pub fn open(root: &Path) -> Result<Db, Error> {
         if !root.exists() {
             fs::create_dir_all(root)?;
         }
@@ -225,7 +225,7 @@ impl Db {
     }
 
     /// Open or create a collection in the database
-    pub fn collection(&self, name: &str) -> Result<Collection, DbError> {
+    pub fn collection(&self, name: &str) -> Result<Collection, Error> {
         let path = self.root.join(name);
         if !path.exists() {
             fs::create_dir(&path)?;
