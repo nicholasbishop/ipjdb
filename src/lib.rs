@@ -25,7 +25,7 @@ impl<T> Item<T> {
 }
 
 /// Group of items in the database
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Collection {
     root: PathBuf,
 }
