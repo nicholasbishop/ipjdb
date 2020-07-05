@@ -208,7 +208,7 @@ impl Collection {
 }
 
 /// Database handle
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Db {
     root: PathBuf,
 }
