@@ -61,7 +61,7 @@ impl Collection {
                 .file_name()
                 .into_string()
                 .expect("failed to convert file name to string");
-            let id = Id::from_str(&name)?;
+            let id = name.parse::<Id>()?;
             let path = entry.path();
             let file = fs::File::open(path)?;
             let reader = io::BufReader::new(file);
@@ -189,7 +189,7 @@ impl Collection {
                 .file_name()
                 .into_string()
                 .expect("failed to convert file name to string");
-            let id = Id::from_str(&name)?;
+            let id = name.parse::<Id>()?;
             let path = entry.path();
             let file = fs::File::open(&path)?;
             let reader = io::BufReader::new(file);

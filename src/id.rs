@@ -23,8 +23,16 @@ impl Id {
         Id(arr)
     }
 
-    /// Create an ID from a 16-character hexadecimal string
-    pub fn from_str(s: &str) -> Result<Id, DbError> {
+    /// Convert an ID to a 16-character hexadecimal string
+    pub fn to_str(&self) -> Result<&str, DbError> {
+        std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidId)
+    }
+}
+
+impl std::str::FromStr for Id {
+    type Err = DbError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let b = s.as_bytes();
         if b.len() == ID_SIZE {
             let mut arr: [u8; ID_SIZE] = Default::default();
@@ -33,11 +41,6 @@ impl Id {
         } else {
             Err(DbError::InvalidId)
         }
-    }
-
-    /// Convert an ID to a 16-character hexadecimal string
-    pub fn to_str(&self) -> Result<&str, DbError> {
-        std::str::from_utf8(&self.0).map_err(|_| DbError::InvalidId)
     }
 }
 
@@ -77,7 +80,7 @@ impl<'de> de::Visitor<'de> for IdVisitor {
     where
         E: de::Error,
     {
-        if let Ok(id) = Id::from_str(s) {
+        if let Ok(id) = s.parse::<Id>() {
             Ok(id)
         } else {
             Err(de::Error::invalid_value(de::Unexpected::Str(s), &self))
@@ -100,13 +103,13 @@ mod tests {
 
     #[test]
     fn test_id_serialize() {
-        let id = Id::from_str("0123456789abcdef").unwrap();
+        let id = "0123456789abcdef".parse::<Id>().unwrap();
         assert_eq!(serde_json::to_string(&id).unwrap(), "\"0123456789abcdef\"");
     }
 
     #[test]
     fn test_id_deserialize() {
         let id: Id = serde_json::from_str("\"0123456789abcdef\"").unwrap();
-        assert_eq!(id, Id::from_str("0123456789abcdef").unwrap());
+        assert_eq!(id, "0123456789abcdef".parse::<Id>().unwrap());
     }
 }
