@@ -1,33 +1,13 @@
-use std::fmt;
 use std::io;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("invalid id")]
     InvalidId,
-    IoError(io::Error),
-    JsonError(serde_json::error::Error),
-}
 
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Error::IoError(error)
-    }
-}
+    #[error("io error: {0}")]
+    IoError(#[from] io::Error),
 
-impl From<serde_json::error::Error> for Error {
-    fn from(error: serde_json::error::Error) -> Self {
-        Error::JsonError(error)
-    }
+    #[error("invalid json: {0}")]
+    JsonError(#[from] serde_json::error::Error),
 }
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            Error::InvalidId => write!(f, "InvalidId"),
-            Error::IoError(e) => write!(f, "IoError: {}", e),
-            Error::JsonError(e) => write!(f, "JsonError: {}", e),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
