@@ -5,7 +5,7 @@ use serde::{de, ser};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
-pub const ID_SIZE: usize = 16;
+const ID_SIZE: usize = 16;
 
 /// Unique item ID
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

@@ -3,7 +3,7 @@ mod id;
 mod lock;
 
 pub use error::DbError;
-pub use id::{Id, ID_SIZE};
+pub use id::Id;
 use lock::FileLock;
 use serde::{Deserialize, Serialize};
 use std::fs;
