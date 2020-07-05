@@ -17,8 +17,8 @@ impl Id {
         let chars = b"0123456789abcdef";
         let mut rng = thread_rng();
         let mut arr: [u8; ID_SIZE] = Default::default();
-        for index in 0..arr.len() {
-            arr[index] = *chars.choose(&mut rng).unwrap();
+        for elem in &mut arr {
+            *elem = *chars.choose(&mut rng).unwrap();
         }
         Id(arr)
     }
