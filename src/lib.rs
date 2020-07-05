@@ -1,8 +1,8 @@
-pub mod error;
-pub mod id;
+mod error;
+mod id;
 mod lock;
 
-use error::DbError;
+pub use error::DbError;
 pub use id::{Id, ID_SIZE};
 use lock::FileLock;
 use serde::{Deserialize, Serialize};
