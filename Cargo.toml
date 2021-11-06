@@ -2,7 +2,7 @@
 name = "ipjdb"
 version = "0.15.1-alpha.0"
 authors = ["Nicholas Bishop <nicholasbishop@gmail.com>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/nicholasbishop/ipjdb"
 license = "Apache-2.0"
 description = "In-process JSON database"
