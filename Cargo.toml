@@ -1,12 +1,14 @@
+[badges.maintenance]
+status = "deprecated"
+
 [package]
 name = "ipjdb"
-version = "0.16.0"
+version = "0.16.1"
 authors = ["Nicholas Bishop <nicholasbishop@gmail.com>"]
 edition = "2021"
 repository = "https://github.com/nicholasbishop/ipjdb"
 license = "Apache-2.0"
 description = "In-process JSON database"
-readme = "README.md"
 
 [dependencies]
 fs2 = "0.4.3"
